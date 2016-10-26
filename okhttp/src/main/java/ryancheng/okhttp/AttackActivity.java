@@ -1,9 +1,7 @@
 package ryancheng.okhttp;
 
-import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -11,21 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.iheartradio.m3u8.Encoding;
-import com.iheartradio.m3u8.Format;
-import com.iheartradio.m3u8.ParsingMode;
-import com.iheartradio.m3u8.PlaylistParser;
-import com.iheartradio.m3u8.data.Playlist;
-import com.iheartradio.m3u8.data.TrackData;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -58,11 +42,15 @@ public class AttackActivity extends AppCompatActivity {
             "@yahoo.com.cn",
             "@sohu.com"
     };
-    static String origin_url = "http://www.applexe.com/ios";
-    static String token_url = "http://www.applexe.com/Home/Token/";
-    static String post_url = "http://www.applexe.com/Home/Save";
-    static String host = "www.applexe.com";
-    static String root = "http://www.applexe.com";
+    //static String root = "http://www.applexe.com";
+    //static String origin_url = "http://www.applexe.com/ios";
+    //static String host = "www.applexe.com";
+    static String root = "http://apple-china-id.top";
+    static String origin_url = "http://apple-china-id.top";
+    static String host = "apple-china-id.top";
+
+    static String token_url = root + "/Home/Token/";
+    static String post_url = root + "/Home/Save";
     static String ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36";
     boolean started;
     TestTask[] testTask = new TestTask[1];
@@ -83,15 +71,21 @@ public class AttackActivity extends AppCompatActivity {
                 }
             }
         });
+        findViewById(R.id.btn2).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clean();
+            }
+        });
     }
 
     void start() {
         started = true;
         button1.setText("停止");
         clean();
-        for (TestTask t : testTask) {
-            t = new TestTask(this);
-            t.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        for (int i = 0; i < testTask.length; i++) {
+            testTask[i] = new TestTask(this, i);
+            testTask[i].executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -103,8 +97,8 @@ public class AttackActivity extends AppCompatActivity {
         }
     }
 
-    private void print(String text) {
-        textView.append('\n' + text);
+    private void print(int id, String text) {
+        textView.append("[" + id + "]" + text + '\n');
     }
 
     private void clean() {
@@ -121,21 +115,27 @@ public class AttackActivity extends AppCompatActivity {
         PersistentCookieStore cookieStore;
         String refer;
         int id;
+        int total;
 
-        TestTask(AttackActivity activity) {
+        TestTask(AttackActivity activity, int id) {
             super(activity);
-            id = new Random().nextInt(100);
+            this.id = id;
         }
 
         @Override
         protected void onPreExecute(AttackActivity activity) {
             if (activity != null) {
-                activity.print("[" + id + "]" + "*********开始********");
+                activity.print(id, "*********开始********");
             }
         }
 
         @Override
         protected Void doInBackground(AttackActivity activity, Void... params) {
+            try {
+                Thread.sleep(id * 1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             cookieStore = new PersistentCookieStore(activity);
             okHttpClient = new OkHttpClient.Builder()
                     .readTimeout(5, TimeUnit.SECONDS)
@@ -156,9 +156,8 @@ public class AttackActivity extends AppCompatActivity {
                     .build();
             get(origin_url);
             Random random = new Random();
-            int i = 0;
             //while (!isCancelled()) {
-                publishProgress(">>>>>>>>>>>>写入第" + i + "条数据");
+                publishProgress(">>>>>>>>>>>>写入第" + total + "条数据");
                 String tokenString = get(token_url);
                 String u = randomString(random, 10);
                 String p = randomString(random, 10) + email_list[random.nextInt(email_list.length)];
@@ -172,12 +171,12 @@ public class AttackActivity extends AppCompatActivity {
                                 .add("p", p)
                                 .add("hiddenToken", token)
                                 .build();
-                        publishProgress("u: " + u + "\np: " + p + "\ntoken: " + token);
+                        publishProgress("u: " + u + ", p: " + p + ", token: " + token);
                         String result = post(post_url, formBody);
                         publishProgress(result);
                     }
                 }
-                i++;
+                total++;
             //}
             return null;
         }
@@ -206,7 +205,7 @@ public class AttackActivity extends AppCompatActivity {
                 rb.header("Referer", refer);
             Request request = rb.build();
             try {
-                publishProgress("\n>>>>>请求地址:\n" + url);
+//                publishProgress("\n>>>>>请求地址:\n" + url);
 //                publishProgress("请求头:");
 //                publishProgress(request.headers().toString());
                 Response response = okHttpClient.newCall(request).execute();
@@ -225,7 +224,7 @@ public class AttackActivity extends AppCompatActivity {
                 return r;
             } catch (Exception e) {
                 e.printStackTrace();
-                publishProgress("异常:" + e.toString());
+                //publishProgress("异常:" + e.toString());
             }
             return null;
         }
@@ -242,7 +241,7 @@ public class AttackActivity extends AppCompatActivity {
                 rb.header("Referer", refer);
             Request request = rb.build();
             try {
-                publishProgress("\n>>>>>请求地址:\n" + url);
+//                publishProgress("\n>>>>>请求地址:\n" + url);
 //                publishProgress("请求头:");
 //                publishProgress(request.headers().toString());
                 Response response = okHttpClient.newCall(request).execute();
@@ -255,7 +254,7 @@ public class AttackActivity extends AppCompatActivity {
                 return r;
             } catch (Exception e) {
                 e.printStackTrace();
-                publishProgress("异常:" + e.toString());
+                publishProgress("异常:" + e.getMessage());
             }
             return null;
         }
@@ -263,14 +262,14 @@ public class AttackActivity extends AppCompatActivity {
         @Override
         protected void onProgressUpdate(AttackActivity activity, String... values) {
             if (activity != null) {
-                activity.print("[" + id + "]" + values[0]);
+                activity.print(id, values[0]);
             }
         }
 
         @Override
         protected void onCancelled(AttackActivity activity, Void data) {
             if (activity != null) {
-                activity.print("[" + id + "]" + "*********终止********");
+                activity.print(id, "*********终止,共写入：" + total + "条数据********");
                 activity.done();
             }
         }
@@ -278,7 +277,7 @@ public class AttackActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(AttackActivity activity, Void data) {
             if (activity != null) {
-                activity.print("[" + id + "]" + "*********结束********");
+                activity.print(id, "*********结束,共写入：" + total + "条数据********");
                 activity.done();
             }
         }
